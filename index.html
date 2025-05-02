@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Your Chatbot</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(to right, #f8fbff, #e3f2fd);
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+    }
+    input[type="text"] {
+      padding: 15px;
+      font-size: 1.2em;
+      width: 100%;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background-color: #0052cc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #003d99;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Create Your Website Chatbot</h1>
+    <p>Enter your domain to create your chatbot:</p>
+    <input type="text" id="domainInput" placeholder="yourdomain.com" />
+    <br />
+    <button onclick="createBot()">Create my chatbot for my website</button>
+    <p id="status" style="margin-top: 20px;"></p>
+  </div>
+
+  <script>
+    async function createBot() {
+      const domain = document.getElementById('domainInput').value;
+      const status = document.getElementById('status');
+      if (!domain) {
+        alert('Please enter a domain name.');
+        return;
+      }
+      status.textContent = 'Processing...';
+
+      try {
+        const response = await fetch('http://localhost:8000/create-chatbot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ domain })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          status.innerHTML = `<strong>Success!</strong> Your chatbot link: <a href="${data.chatbot_url}" target="_blank">${data.chatbot_url}</a>`;
+        } else {
+          status.textContent = 'Error: ' + data.message;
+        }
+      } catch (error) {
+        console.error(error);
+        status.textContent = 'Something went wrong. Please try again later.';
+      }
+    }
+  </script>
+</body>
+</html>
