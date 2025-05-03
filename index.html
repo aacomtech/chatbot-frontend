@@ -101,11 +101,13 @@
         });
 
         const data = await response.json();
-        if (response.ok) {
+        console.log("CreateBot response:", data);
+
+        if (response.ok && data.chatbot_url) {
           status.innerHTML = `<strong>Success!</strong> Your chatbot link: <a href="${data.chatbot_url}" target="_blank">${data.chatbot_url}</a>`;
           chatSection.style.display = 'block';
         } else {
-          status.textContent = 'Error: ' + data.message;
+          status.textContent = data.answer || 'Unknown error from backend.';
         }
       } catch (error) {
         console.error(error);
@@ -137,15 +139,17 @@
         });
 
         const data = await response.json();
-        if (response.ok) {
+        console.log("AskBot response:", data);
+
+        if (response.ok && data.answer) {
           answer.textContent = data.answer;
           status.textContent = '';
         } else {
-          status.textContent = 'Error: ' + data.message;
+          status.textContent = data.answer || 'Something went wrong on the server.';
         }
       } catch (error) {
         console.error(error);
-        status.textContent = 'Something went wrong while asking.';
+        status.textContent = 'Error contacting server. Please try again later.';
       }
     }
   </script>
