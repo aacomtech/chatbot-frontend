@@ -6,51 +6,12 @@
   <title>Create Your Chatbot</title>
   <link rel="icon" href="https://chatbase.co/favicon.ico" />
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: linear-gradient(to right, #f8fbff, #e3f2fd);
-    }
-    .container {
-      text-align: center;
-      background: white;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      width: 100%;
-      margin: 20px;
-    }
-    input[type="text"] {
-      padding: 15px;
-      font-size: 1.2em;
-      width: 100%;
-      margin-bottom: 20px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 15px 30px;
-      font-size: 1.2em;
-      background-color: #0052cc;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:disabled {
-      background-color: #7a9bd1;
-      cursor: not-allowed;
-    }
-    button:hover:not(:disabled) {
-      background-color: #003d99;
-    }
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(to right, #f8fbff, #e3f2fd); }
+    .container { text-align: center; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100%; margin: 20px; }
+    input[type="text"] { padding: 15px; font-size: 1.2em; width: 100%; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+    button { padding: 15px 30px; font-size: 1.2em; background-color: #0052cc; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s ease; }
+    button:disabled { background-color: #7a9bd1; cursor: not-allowed; }
+    button:hover:not(:disabled) { background-color: #003d99; }
   </style>
 </head>
 <body>
@@ -60,21 +21,20 @@
     <input type="text" id="domainInput" placeholder="yourdomain.com" />
     <br />
     <button id="submitButton" onclick="createBot()">Create my chatbot for my website</button>
-
     <div id="chatSection" style="display:none; margin-top: 30px;">
       <p>Ask something about your website:</p>
       <input type="text" id="questionInput" placeholder="What does my site say about pricing?" />
       <br />
       <button onclick="askBot()">Ask</button>
     </div>
-
     <p id="status" style="margin-top: 20px;"></p>
     <p id="answer" style="margin-top: 20px; font-weight: bold;"></p>
   </div>
-
   <script>
+    const API_USER = 'admin'; // replace with your API_USER env
+    const API_PASS = 'secret'; // replace with your API_PASS
+    const BASIC_AUTH = btoa(`${API_USER}:${API_PASS}`);
     let currentDomain = '';
-
     async function createBot() {
       const domainInput = document.getElementById('domainInput');
       const domain = domainInput.value.trim();
@@ -82,77 +42,51 @@
       const button = document.getElementById('submitButton');
       const chatSection = document.getElementById('chatSection');
       const answer = document.getElementById('answer');
-
       if (!domain || !domain.includes('.') || domain.includes(' ')) {
         alert('Please enter a valid domain name (e.g. mysite.com).');
         return;
       }
-
       currentDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
       console.log("Current domain set to:", currentDomain);
-
-      status.textContent = 'Processing...';
-      answer.textContent = '';
-      button.disabled = true;
-
+      status.textContent = 'Processing...'; answer.textContent = ''; button.disabled = true;
       try {
-        const response = await fetch('https://chatbot-embedding-backend.onrender.com/create-chatbot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch('https://<your-backend>/create-chatbot', {
+          method: 'POST', headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${BASIC_AUTH}`
+          },
           body: JSON.stringify({ domain })
         });
-
-        const data = await response.json();
-        console.log("CreateBot response:", data);
-
+        const data = await response.json(); console.log("CreateBot response:", data);
         if (response.ok && data.chatbot_url) {
           status.innerHTML = `<strong>Success!</strong> Your chatbot link: <a href="${data.chatbot_url}" target="_blank">${data.chatbot_url}</a>`;
           chatSection.style.display = 'block';
         } else {
           status.textContent = data.answer || 'Unknown error from backend.';
         }
-      } catch (error) {
-        console.error(error);
-        status.textContent = 'Something went wrong. Please try again later.';
-      } finally {
-        button.disabled = false;
-      }
+      } catch (error) { console.error(error); status.textContent = 'Something went wrong. Please try again later.'; }
+      finally { button.disabled = false; }
     }
-
     async function askBot() {
       const questionInput = document.getElementById('questionInput');
       const question = questionInput.value.trim();
       const status = document.getElementById('status');
       const answer = document.getElementById('answer');
-
-      if (!question) {
-        alert('Please enter a question.');
-        return;
-      }
-
-      status.textContent = 'Thinking...';
-      answer.textContent = '';
-
+      if (!question) { alert('Please enter a question.'); return; }
+      status.textContent = 'Thinking...'; answer.textContent = '';
       try {
-        const response = await fetch('https://chatbot-embedding-backend.onrender.com/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch('https://<your-backend>/ask', {
+          method: 'POST', headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${BASIC_AUTH}`
+          },
           body: JSON.stringify({ domain: currentDomain, question })
         });
-
-        const data = await response.json();
-        console.log("AskBot response:", data);
-
+        const data = await response.json(); console.log("AskBot response:", data);
         if (response.ok && data.answer) {
-          answer.textContent = data.answer;
-          status.textContent = '';
-        } else {
-          status.textContent = data.answer || 'Something went wrong on the server.';
-        }
-      } catch (error) {
-        console.error(error);
-        status.textContent = 'Error contacting server. Please try again later.';
-      }
+          answer.textContent = data.answer; status.textContent = ''; }
+        else { status.textContent = data.answer || 'Something went wrong on the server.'; }
+      } catch (error) { console.error(error); status.textContent = 'Error contacting server. Please try again later.'; }
     }
   </script>
 </body>
