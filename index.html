@@ -134,7 +134,7 @@
       answer.textContent = '';
 
       try {
-        const response = await fetch('https://chatbot-backend-5dh3.onrender.com/ask', {
+        const response = await fetch('https://chatbot-embedding-backend.onrender.com/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ domain: currentDomain, question })
