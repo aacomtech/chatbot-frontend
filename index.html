@@ -50,14 +50,23 @@
       console.log("Current domain set to:", currentDomain);
       status.textContent = 'Processing...'; answer.textContent = ''; button.disabled = true;
       try {
-        const response = await fetch('chatbot-embedding-backend.onrender.com/create-chatbot', {
+        const response = await fetch('https://<your-backend>/create-chatbot', {
           method: 'POST', headers: {
             'Content-Type': 'application/json',
             'Authorization': `Basic ${BASIC_AUTH}`
           },
           body: JSON.stringify({ domain })
         });
-        const data = await response.json(); console.log("CreateBot response:", data);
+        let data;
+try {
+  data = await response.json();
+} catch (e) {
+  const text = await response.text();
+  console.error('Failed to parse JSON:', text);
+  status.textContent = text;
+  return;
+}
+console.log("CreateBot response:", data);
         if (response.ok && data.chatbot_url) {
           status.innerHTML = `<strong>Success!</strong> Your chatbot link: <a href="${data.chatbot_url}" target="_blank">${data.chatbot_url}</a>`;
           chatSection.style.display = 'block';
@@ -82,7 +91,16 @@
           },
           body: JSON.stringify({ domain: currentDomain, question })
         });
-        const data = await response.json(); console.log("AskBot response:", data);
+        let data;
+try {
+  data = await response.json();
+} catch (e) {
+  const text = await response.text();
+  console.error('Failed to parse JSON:', text);
+  status.textContent = text;
+  return;
+}
+console.log("AskBot response:", data);
         if (response.ok && data.answer) {
           answer.textContent = data.answer; status.textContent = ''; }
         else { status.textContent = data.answer || 'Something went wrong on the server.'; }
