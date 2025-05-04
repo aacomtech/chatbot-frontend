@@ -97,14 +97,14 @@
   <div class="container">
     <h1 id="title">Create Your Website Chatbot</h1>
     <div id="createSection">
-      <p>Enter your domain to create your chatbot:</p>
+      <p id="labelEnter">Enter your domain to create your chatbot:</p>
       <input type="text" id="domainInput" placeholder="yourdomain.com" />
       <br />
       <button id="submitButton" onclick="createBot()">Create my chatbot for my website</button>
     </div>
     <div id="chatSection" style="display:none; margin-top: 20px;">
       <div class="chat-window clearfix" id="chatWindow"></div>
-      <input type="text" id="questionInput" placeholder="Stil et spørsmål..." />
+      <input type="text" id="questionInput" placeholder="Ask a question..." />
       <button id="sendButton" onclick="askBot()">Send</button>
       <div class="powered">Powered by SiteAssistant</div>
     </div>
@@ -115,6 +115,39 @@
     const backend = 'https://chatbot-embedding-backend.onrender.com';
     let currentDomain = '';
 
+    // Internationalization strings
+    const strings = {
+      en: {
+        titleCreate: 'Create Your Website Chatbot',
+        enterDomain: 'Enter your domain to create your chatbot:',
+        createButton: 'Create my chatbot for my website',
+        askPlaceholder: 'Ask a question...',
+        sendButton: 'Send',
+        creating: 'Creating...',
+        writing: 'Writing...',
+        serverError: 'Server error',
+        creationError: 'Error creating chatbot',
+        successMessage: domain => `Success! Open chat: `,
+        chatTitle: domain => `Chat about ${domain}`
+      },
+      no: {
+        titleCreate: 'Opprett din chatrobot',
+        enterDomain: 'Skriv inn ditt domene for å opprette chatbot:',
+        createButton: 'Opprett chatbot for mitt nettsted',
+        askPlaceholder: 'Stil et spørsmål...',
+        sendButton: 'Send',
+        creating: 'Oppretter...',
+        writing: 'Skriver...',
+        serverError: 'Serverfeil',
+        creationError: 'Feil ved oppretting',
+        successMessage: domain => `Success! Åpne chat: `,
+        chatTitle: domain => `Chat om ${domain}`
+      }
+    };
+    const userLang = navigator.language.slice(0,2).toLowerCase();
+    const lang = (userLang === 'no' || userLang === 'nb') ? 'no' : 'en';
+    const str = strings[lang];
+
     // Normalize domain: strip protocol and optional www.
     function normalizeDomain(input) {
       return input.trim()
@@ -124,15 +157,21 @@
     }
 
     function showChat(domain) {
-      document.getElementById('title').textContent = `Chat om ${domain}`;
+      document.getElementById('title').textContent = str.chatTitle(domain);
       document.getElementById('createSection').style.display = 'none';
       document.getElementById('chatSection').style.display = 'block';
       currentDomain = domain;
       document.getElementById('questionInput').focus();
     }
 
-    // Handle initial route
+    // Apply translations
     window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('title').textContent = str.titleCreate;
+      document.getElementById('labelEnter').textContent = str.enterDomain;
+      document.getElementById('submitButton').textContent = str.createButton;
+      document.getElementById('questionInput').placeholder = str.askPlaceholder;
+      document.getElementById('sendButton').textContent = str.sendButton;
+
       const path = window.location.pathname;
       if (path.length > 1) {
         const slug = path.slice(1);
@@ -153,12 +192,11 @@
     });
 
     async function createBot() {
-      const input = document.getElementById('domainInput');
-      const raw = input.value;
+      const raw = document.getElementById('domainInput').value;
       const domain = normalizeDomain(raw);
       const status = document.getElementById('status');
       if (!domain) return;
-      status.textContent = 'Oppretter...';
+      status.textContent = str.creating;
       try {
         const res = await fetch(`${backend}/client/create-chatbot`, {
           method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -167,12 +205,12 @@
         const data = await res.json();
         if (res.ok) {
           const link = `https://${window.location.host}/${domain.replace(/\./g, '-')}`;
-          status.innerHTML = `Success! Åpne chat: <a href="${link}" target="_blank">${link}</a>`;
+          status.innerHTML = `${str.successMessage(domain)}<a href="${link}" target="_blank">${link}</a>`;
         } else {
-          status.textContent = data.answer || 'Feil ved oppretting';
+          status.textContent = data.answer || str.creationError;
         }
       } catch(e) {
-        status.textContent = 'Serverfeil';
+        status.textContent = str.serverError;
       }
     }
 
@@ -180,8 +218,7 @@
       const input = document.getElementById('questionInput');
       const chat = document.getElementById('chatWindow');
       const status = document.getElementById('status');
-      const raw = input.value;
-      const question = raw.trim();
+      const question = input.value.trim();
       if (!question) return;
       // Append user message
       const userMsg = document.createElement('div');
@@ -189,7 +226,7 @@
       userMsg.textContent = question;
       chat.appendChild(userMsg);
       chat.scrollTop = chat.scrollHeight;
-      status.textContent = 'Skriver...';
+      status.textContent = str.writing;
       try {
         const res = await fetch(`${backend}/client/ask`, {
           method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -203,7 +240,7 @@
         chat.scrollTop = chat.scrollHeight;
         status.textContent = '';
       } catch(e) {
-        status.textContent = 'Serverfeil i chat';
+        status.textContent = str.serverError;
       }
       input.value = '';
     }
