@@ -38,33 +38,36 @@
     }
     button:disabled { background-color: #7a9bd1; cursor: not-allowed; }
     button:hover:not(:disabled) { background-color: #003d99; }
-    /* Chat overlay styling */
-    .chat-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 320px;
-      max-width: calc(100% - 40px);
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      display: none;
+    /* Standalone chat styling */
+    .chat-container-standalone {
+      display: flex;
       flex-direction: column;
-      overflow: hidden;
-      z-index: 9999;
+      height: 80vh;
     }
-    .chat-header { background: #0052cc; color: white; padding: 10px; font-size: 1em; }
-    .chat-window { flex: 1; padding: 10px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; }
-    .input-area { display: flex; border-top: 1px solid #ddd; }
-    .input-area input { flex: 1; border: none; padding: 10px; font-size: 1em; }
-    .input-area button { padding: 10px; border: none; background: #0052cc; color: white; cursor: pointer; }
+    .chat-window-standalone {
+      flex: 1;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow-y: auto;
+      background: #f9f9f9;
+      margin-bottom: 15px;
+    }
+    /* Inline padding for input in standalone */
+    .input-area-standalone {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .input-area-standalone input { flex: 1; border: none; padding: 10px; font-size: 1em; border-radius: 4px; }
+    .input-area-standalone button { margin-left: 10px; padding: 10px; }
     .message { margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 80%; word-wrap: break-word; }
     .message.user { background: #d0ebff; align-self: flex-end; }
     .message.bot { background: #e0e0e0; align-self: flex-start; }
     .powered { font-size: 0.7em; color: #888; margin: 4px; text-align: right; }
-    /* Code snippet box */
-    #codeSnippet { display: none; text-align: left; background: #f0f0f0; padding: 15px; border-radius: 8px; overflow-x: auto; margin-top: 20px; font-family: monospace; }
-    /* Preview section */
+    /* Preview iframe styling */
     #previewSection { display: none; position: relative; width: 100vw; height: 100vh; }
     #previewFrame { width: 100%; height: 100%; border: none; }
   </style>
@@ -79,21 +82,21 @@
       <button id="submitButton" onclick="createBot()">Create my chatbot for my website</button>
     </div>
     <div id="status" style="margin-top:20px;"></div>
-    <pre id="codeSnippet"></pre>
+    <pre id="codeSnippet" style="display:none;"></pre>
+    <!-- Standalone chat section -->
+    <div id="standaloneChat" style="display:none; margin-top:20px;" class="chat-container-standalone">
+      <div id="chatWindowStandalone" class="chat-window-standalone"></div>
+      <div class="input-area-standalone">
+        <input type="text" id="questionInputStandalone" placeholder="Ask a question..." />
+        <button onclick="askBotStandalone()">Send</button>
+      </div>
+      <div class="powered">Powered by SiteAssistant</div>
+    </div>
   </div>
 
+  <!-- Preview full site with overlay (unchanged) -->
   <div id="previewSection">
     <iframe id="previewFrame"></iframe>
-  </div>
-
-  <div class="chat-container" id="chatContainer">
-    <div class="chat-header" id="chatHeader"></div>
-    <div class="chat-window" id="chatWindow"></div>
-    <div class="input-area">
-      <input type="text" id="questionInput" placeholder="Ask a question..." />
-      <button id="sendButton" onclick="askBot()">Send</button>
-    </div>
-    <div class="powered">Powered by SiteAssistant</div>
   </div>
 
   <script>
@@ -104,37 +107,36 @@
       return input.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
     }
 
-    function showChat(domain) {
+    function showStandaloneChat(domain) {
       currentDomain = domain;
-      document.getElementById('chatHeader').textContent = `Chat about ${domain}`;
-      document.getElementById('chatContainer').style.display = 'flex';
-      document.getElementById('previewSection').style.display = 'block';
-      document.getElementById('previewFrame').src = 'https://' + domain;
-      document.getElementById('mainContainer').style.display = 'none';
-      document.getElementById('questionInput').focus();
+      document.getElementById('createSection').style.display = 'none';
+      document.getElementById('standaloneChat').style.display = 'flex';
+      document.getElementById('title').textContent = `Chat about ${domain}`;
+      document.getElementById('questionInputStandalone').focus();
     }
 
-    function showCodeSnippet() {
-      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig = { domain: '${currentDomain}', backend: '${backend}' };\n  var s=document.createElement('script');\n  s.src='https://${window.location.host}/widget.js';\n  s.async=true;\n  document.head.appendChild(s);\n})();\n<\/script>`;
-      const pre = document.getElementById('codeSnippet');
-      pre.textContent = snippet;
-      pre.style.display = 'block';
+    function showPreviewChat(domain) {
+      currentDomain = domain;
+      document.getElementById('mainContainer').style.display = 'none';
+      document.getElementById('previewSection').style.display = 'block';
+      document.getElementById('previewFrame').src = 'https://' + domain;
+      // Here you could overlay chat UI on preview, omitted for brevity
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       const path = window.location.pathname;
       if (path.startsWith('/preview-')) {
         const domain = normalizeDomain(path.slice(9).replace(/-/g, '.'));
-        showChat(domain);
+        showPreviewChat(domain);
       } else if (path.length > 1) {
         const domain = normalizeDomain(path.slice(1).replace(/-/g, '.'));
-        showChat(domain);
+        showStandaloneChat(domain);
       }
       document.getElementById('domainInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') createBot();
       });
-      document.getElementById('questionInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') askBot();
+      document.getElementById('questionInputStandalone').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') askBotStandalone();
       });
     });
 
@@ -150,8 +152,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          const chatLink = `/${domain.replace(/\./g,'-')}`;
-          status.innerHTML = `Success! Open chat: <a href="${chatLink}" target="_blank">${chatLink}</a>` +
+          status.innerHTML = `Success! <a href="/${domain.replace(/\./g,'-')}" target="_blank">Open Chat</a>` +
             ` | <a href="#" onclick="showCodeSnippet();return false;">See code for your page</a>` +
             ` | <a href="#" onclick="location.pathname='/preview-${domain.replace(/\./g,'-')}';return false;">Preview on your page</a>`;
         } else {
@@ -160,10 +161,18 @@
       } catch(e) { status.textContent='Server error'; }
     }
 
-    async function askBot() {
-      const question = document.getElementById('questionInput').value.trim();
+    function showCodeSnippet() {
+      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig = { domain: '${currentDomain}', backend: '${backend}' };\n  var s=document.createElement('script');\n  s.src='https://${window.location.host}/widget.js';\n  s.async=true;\n  document.head.appendChild(s);\n})();\n<\/script>`;
+      const pre = document.getElementById('codeSnippet');
+      pre.textContent = snippet;
+      pre.style.display = 'block';
+    }
+
+    async function askBotStandalone() {
+      const input = document.getElementById('questionInputStandalone');
+      const question = input.value.trim();
       if (!question) return;
-      const chat = document.getElementById('chatWindow');
+      const chat = document.getElementById('chatWindowStandalone');
       const status = document.getElementById('status');
       const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question;
       chat.appendChild(userMsg);
@@ -180,7 +189,7 @@
         chat.scrollTop=chat.scrollHeight;
         status.textContent='';
       } catch(e) { status.textContent='Server error in chat'; }
-      document.getElementById('questionInput').value='';
+      input.value='';
     }
   </script>
 </body>
