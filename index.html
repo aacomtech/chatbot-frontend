@@ -185,17 +185,9 @@
         });
         const data = await res.json();
         if (res.ok) {
-          status.innerHTML = `Success! <a href="/${domain.replace(/\./g,'-')}" target="_blank">Open Chat</a>` +
+          status.innerHTML = `Success! <a href="#" onclick="showStandaloneChat('${domain}');return false;">Open Chat</a>` +
             ` | <a href="#" onclick="showCodeSnippet();return false;">See code for your page</a>` +
             ` | <a href="#" onclick="location.pathname='/preview-${domain.replace(/\./g,'-')}';return false;">Preview on your page</a>`;
-        } else {
-          status.textContent = data.answer || 'Error creating chatbot';
-        }
-      } catch(e) { status.textContent='Server error'; }
-    }
-
-    function showCodeSnippet() {
-      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig = { domain: '${currentDomain}', backend: '${backend}' };\n  var s=document.createElement('script');\n  s.src='https://${window.location.host}/widget.js';\n  s.async=true;\n  document.head.appendChild(s);\n})();\n<\/script>`;
       const pre = document.getElementById('codeSnippet');
       pre.textContent = snippet;
       pre.style.display = 'block';
