@@ -54,10 +54,10 @@
       z-index: 9999;
     }
     .chat-header { background: #0052cc; color: white; padding: 10px; font-size: 1em; }
-    .chat-window { flex: 1; padding: 10px; overflow-y: auto; background: #f9f9f9; }
+    .chat-window { flex: 1; padding: 10px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; }
     .input-area { display: flex; border-top: 1px solid #ddd; }
     .input-area input { flex: 1; border: none; padding: 10px; font-size: 1em; }
-    .input-area button { border-top-right-radius: 12px; }
+    .input-area button { padding: 10px; border: none; background: #0052cc; color: white; cursor: pointer; }
     .message { margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 80%; word-wrap: break-word; }
     .message.user { background: #d0ebff; align-self: flex-end; }
     .message.bot { background: #e0e0e0; align-self: flex-start; }
@@ -100,8 +100,6 @@
     const backend = 'https://chatbot-embedding-backend.onrender.com';
     let currentDomain = '';
 
-    // i18n strings omitted for brevity (use existing str object)
-
     function normalizeDomain(input) {
       return input.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
     }
@@ -117,14 +115,13 @@
     }
 
     function showCodeSnippet() {
-      $1<\/script>$3
+      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig = { domain: '${currentDomain}', backend: '${backend}' };\n  var s=document.createElement('script');\n  s.src='https://${window.location.host}/widget.js';\n  s.async=true;\n  document.head.appendChild(s);\n})();\n<\/script>`;
       const pre = document.getElementById('codeSnippet');
       pre.textContent = snippet;
       pre.style.display = 'block';
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      // ... initialize i18n and enter-key listeners (omitted for brevity)
       const path = window.location.pathname;
       if (path.startsWith('/preview-')) {
         const domain = normalizeDomain(path.slice(9).replace(/-/g, '.'));
@@ -133,6 +130,12 @@
         const domain = normalizeDomain(path.slice(1).replace(/-/g, '.'));
         showChat(domain);
       }
+      document.getElementById('domainInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') createBot();
+      });
+      document.getElementById('questionInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') askBot();
+      });
     });
 
     async function createBot() {
@@ -150,7 +153,7 @@
           const chatLink = `/${domain.replace(/\./g,'-')}`;
           status.innerHTML = `Success! Open chat: <a href="${chatLink}" target="_blank">${chatLink}</a>` +
             ` | <a href="#" onclick="showCodeSnippet();return false;">See code for your page</a>` +
-            ` | <a href="${chatLink}" onclick="location.pathname='/preview-${domain.replace(/\./g,'-')}';return false;">Preview on your page</a>`;
+            ` | <a href="#" onclick="location.pathname='/preview-${domain.replace(/\./g,'-')}';return false;">Preview on your page</a>`;
         } else {
           status.textContent = data.answer || 'Error creating chatbot';
         }
