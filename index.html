@@ -8,7 +8,6 @@
   <style>
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .container {
-      position: relative;
       max-width: 600px;
       margin: 40px auto;
       padding: 40px;
@@ -40,9 +39,10 @@
     button:hover:not(:disabled) { background-color: #003d99; }
     /* Standalone chat styling */
     .chat-container-standalone {
-      display: flex;
+      display: none;
       flex-direction: column;
       height: 80vh;
+      margin-top: 20px;
     }
     .chat-window-standalone {
       flex: 1;
@@ -53,13 +53,12 @@
       background: #f9f9f9;
       margin-bottom: 15px;
     }
-    /* Inline padding for input in standalone */
     .input-area-standalone {
       display: flex;
       padding: 10px;
       border-top: 1px solid #ddd;
-      border-radius: 8px;
       background: #fff;
+      border-radius: 8px;
     }
     .input-area-standalone input { flex: 1; border: none; padding: 10px; font-size: 1em; border-radius: 4px; }
     .input-area-standalone button { margin-left: 10px; padding: 10px; }
@@ -67,8 +66,10 @@
     .message.user { background: #d0ebff; align-self: flex-end; }
     .message.bot { background: #e0e0e0; align-self: flex-start; }
     .powered { font-size: 0.7em; color: #888; margin: 4px; text-align: right; }
-    /* Chat overlay styling (preview) */
-    .chat-container {
+    /* Preview styling */
+    #previewSection { display: none; position: relative; width: 100vw; height: 100vh; }
+    #previewFrame { width: 100%; height: 100%; border: none; }
+    .chat-container-preview {
       position: fixed;
       bottom: 20px;
       right: 20px;
@@ -83,13 +84,11 @@
       z-index: 9999;
     }
     .chat-header { background: #0052cc; color: white; padding: 10px; font-size: 1em; }
-    .chat-window { flex: 1; padding: 10px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; }
-    .input-area { display: flex; padding: 20px; border-top: 1px solid #ddd; background: #fff; }
-    .input-area input { flex: 1; border: none; padding: 10px; font-size: 1em; }
-    .input-area button { padding: 10px; background: #0052cc; color: white; border: none; border-radius: 0 0 4px 0; cursor: pointer; }
-    /* Preview iframe styling */
-    #previewSection { display: none; position: relative; width: 100vw; height: 100vh; }
-    #previewFrame { width: 100%; height: 100%; border: none; }
+    .chat-window-preview { flex: 1; padding: 10px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; }
+    .input-area-preview { display: flex; padding: 20px; border-top: 1px solid #ddd; background: #fff; }
+    .input-area-preview input { flex: 1; border: none; padding: 10px; font-size: 1em; }
+    .input-area-preview button { padding: 10px; background: #0052cc; color: white; border: none; border-radius: 0 0 4px 0; cursor: pointer; }
+    #codeSnippet { display: none; text-align: left; background: #f0f0f0; padding: 15px; border-radius: 8px; overflow-x: auto; margin-top: 20px; font-family: monospace; }
   </style>
 </head>
 <body>
@@ -102,9 +101,8 @@
       <button id="submitButton" onclick="createBot()">Create my chatbot for my website</button>
     </div>
     <div id="status" style="margin-top:20px;"></div>
-    <pre id="codeSnippet" style="display:none; text-align:left; background:#f0f0f0; padding:15px; border-radius:8px; overflow-x:auto;"></pre>
-    <!-- Standalone chat section -->
-    <div id="standaloneChat" style="display:none; margin-top:20px;" class="chat-container-standalone">
+    <pre id="codeSnippet" style="display:none;"></pre>
+    <div class="chat-container-standalone" id="standaloneChat">
       <div id="chatWindowStandalone" class="chat-window-standalone"></div>
       <div class="input-area-standalone">
         <input type="text" id="questionInputStandalone" placeholder="Ask a question..." />
@@ -114,13 +112,12 @@
     </div>
   </div>
 
-  <!-- Preview full site with overlay -->
   <div id="previewSection">
     <iframe id="previewFrame"></iframe>
-    <div class="chat-container" id="chatContainer">
-      <div class="chat-header" id="chatHeader">Chat</div>
-      <div class="chat-window" id="chatWindow"></div>
-      <div class="input-area">
+    <div class="chat-container-preview" id="chatPreview">
+      <div class="chat-header">Chat</div>
+      <div class="chat-window-preview" id="chatWindowPreview"></div>
+      <div class="input-area-preview">
         <input type="text" id="questionInputPreview" placeholder="Ask a question..." />
         <button onclick="askBotPreview()">Send</button>
       </div>
@@ -139,6 +136,8 @@
     function showStandaloneChat(domain) {
       currentDomain = domain;
       document.getElementById('createSection').style.display = 'none';
+      document.getElementById('codeSnippet').style.display = 'none';
+      document.getElementById('previewSection').style.display = 'none';
       document.getElementById('standaloneChat').style.display = 'flex';
       document.getElementById('title').textContent = `Chat about ${domain}`;
       document.getElementById('questionInputStandalone').focus();
@@ -147,9 +146,11 @@
     function showPreviewChat(domain) {
       currentDomain = domain;
       document.getElementById('mainContainer').style.display = 'none';
+      document.getElementById('standaloneChat').style.display = 'none';
+      document.getElementById('codeSnippet').style.display = 'none';
       document.getElementById('previewSection').style.display = 'block';
       document.getElementById('previewFrame').src = 'https://' + domain;
-      document.getElementById('chatContainer').style.display = 'flex';
+      document.getElementById('chatPreview').style.display = 'flex';
       document.getElementById('questionInputPreview').focus();
     }
 
@@ -162,15 +163,9 @@
         const domain = normalizeDomain(path.slice(1).replace(/-/g, '.'));
         showStandaloneChat(domain);
       }
-      document.getElementById('domainInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') createBot();
-      });
-      document.getElementById('questionInputStandalone').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') askBotStandalone();
-      });
-      document.getElementById('questionInputPreview').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') askBotPreview();
-      });
+      document.getElementById('domainInput').addEventListener('keydown', e => { if (e.key==='Enter') createBot(); });
+      document.getElementById('questionInputStandalone').addEventListener('keydown', e => { if (e.key==='Enter') askBotStandalone(); });
+      document.getElementById('questionInputPreview').addEventListener('keydown', e => { if (e.key==='Enter') askBotPreview(); });
     });
 
     async function createBot() {
@@ -180,14 +175,20 @@
       if (!domain) return;
       status.textContent = 'Creating...';
       try {
-        const res = await fetch(`${backend}/client/create-chatbot`, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain})
-        });
+        const res = await fetch(`${backend}/client/create-chatbot`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain}) });
         const data = await res.json();
         if (res.ok) {
           status.innerHTML = `Success! <a href="#" onclick="showStandaloneChat('${domain}');return false;">Open Chat</a>` +
             ` | <a href="#" onclick="showCodeSnippet();return false;">See code for your page</a>` +
-            ` | <a href="#" onclick="location.pathname='/preview-${domain.replace(/\./g,'-')}';return false;">Preview on your page</a>`;
+            ` | <a href="#" onclick="showPreviewChat('${domain}');return false;">Preview on your page</a>`;
+        } else {
+          status.textContent = data.answer || 'Error creating chatbot';
+        }
+      } catch(e) { status.textContent='Server error'; }
+    }
+
+    function showCodeSnippet() {
+      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig = { domain: '${currentDomain}', backend: '${backend}' };\n  var s=document.createElement('script');\n  s.src='https://${window.location.host}/widget.js';\n  s.async=true;\n  document.head.appendChild(s);\n})();\n<\/script>`;
       const pre = document.getElementById('codeSnippet');
       pre.textContent = snippet;
       pre.style.display = 'block';
@@ -195,48 +196,28 @@
 
     async function askBotStandalone() {
       const input = document.getElementById('questionInputStandalone');
-      const question = input.value.trim();
-      if (!question) return;
-      const chat = document.getElementById('chatWindowStandalone');
-      const status = document.getElementById('status');
-      const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question;
-      chat.appendChild(userMsg);
-      chat.scrollTop=chat.scrollHeight;
-      status.textContent='Writing...';
+      const question = input.value.trim(); if (!question) return;
+      const chat = document.getElementById('chatWindowStandalone'); const status = document.getElementById('status');
+      const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question; chat.appendChild(userMsg);
+      chat.scrollTop=chat.scrollHeight; status.textContent='Writing...';
       try {
-        const res = await fetch(`${backend}/client/ask`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({domain:currentDomain,question})
-        });
-        const data = await res.json();
-        const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer;
-        chat.appendChild(botMsg);
-        chat.scrollTop=chat.scrollHeight;
-        status.textContent='';
+        const res = await fetch(`${backend}/client/ask`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:currentDomain,question}) });
+        const data = await res.json(); const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer; chat.appendChild(botMsg);
+        chat.scrollTop=chat.scrollHeight; status.textContent='';
       } catch(e) { status.textContent='Server error in chat'; }
       input.value='';
     }
 
     async function askBotPreview() {
       const input = document.getElementById('questionInputPreview');
-      const question = input.value.trim();
-      if (!question) return;
-      const chat = document.getElementById('chatWindow');
-      const status = document.getElementById('status');
-      const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question;
-      chat.appendChild(userMsg);
-      chat.scrollTop=chat.scrollHeight;
-      status.textContent='Writing...';
+      const question = input.value.trim(); if (!question) return;
+      const chat = document.getElementById('chatWindowPreview'); const status = document.getElementById('status');
+      const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question; chat.appendChild(userMsg);
+      chat.scrollTop=chat.scrollHeight; status.textContent='Writing...';
       try {
-        const res = await fetch(`${backend}/client/ask`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({domain:currentDomain,question})
-        });
-        const data = await res.json();
-        const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer;
-        chat.appendChild(botMsg);
-        chat.scrollTop=chat.scrollHeight;
-        status.textContent='';
+        const res = await fetch(`${backend}/client/ask`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:currentDomain,question}) });
+        const data = await res.json(); const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer; chat.appendChild(botMsg);
+        chat.scrollTop=chat.scrollHeight; status.textContent='';
       } catch(e) { status.textContent='Server error in chat'; }
       input.value='';
     }
