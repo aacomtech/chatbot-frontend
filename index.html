@@ -6,16 +6,91 @@
   <title>SiteAssistant Chat</title>
   <link rel="icon" href="https://chatbase.co/favicon.ico" />
   <style>
-    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(to right, #f8fbff, #e3f2fd); }
-    .container { text-align: center; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100%; margin: 20px; }
-    input[type="text"] { padding: 15px; font-size: 1.2em; width: 100%; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-    button { padding: 15px 30px; font-size: 1.2em; background-color: #0052cc; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s ease; }
-    button:disabled { background-color: #7a9bd1; cursor: not-allowed; }
-    button:hover:not(:disabled) { background-color: #003d99; }
-    .chat-window { border: 1px solid #ccc; border-radius: 8px; padding: 20px; height: 400px; overflow-y: auto; margin-bottom: 20px; text-align: left; }
-    .message { margin: 10px 0; }
-    .message.user { text-align: right; }
-    .powered { font-size: 0.8em; color: #888; margin-top: 20px; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(to right, #f8fbff, #e3f2fd);
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+      margin: 20px;
+    }
+    input[type="text"] {
+      padding: 15px;
+      font-size: 1.2em;
+      width: 100%;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background-color: #0052cc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:disabled {
+      background-color: #7a9bd1;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background-color: #003d99;
+    }
+    .chat-window {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      height: 400px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      text-align: left;
+      background: #fff;
+    }
+    .message {
+      display: inline-block;
+      padding: 10px 15px;
+      margin: 8px 0;
+      border-radius: 12px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .message.user {
+      background-color: #d0ebff;
+      text-align: right;
+      float: right;
+      clear: both;
+    }
+    .message.bot {
+      background-color: #f0f0f0;
+      text-align: left;
+      float: left;
+      clear: both;
+    }
+    .powered {
+      font-size: 0.8em;
+      color: #888;
+      margin-top: 20px;
+    }
+    .clearfix::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
   </style>
 </head>
 <body>
@@ -28,9 +103,9 @@
       <button id="submitButton" onclick="createBot()">Create my chatbot for my website</button>
     </div>
     <div id="chatSection" style="display:none; margin-top: 20px;">
-      <div class="chat-window" id="chatWindow"></div>
+      <div class="chat-window clearfix" id="chatWindow"></div>
       <input type="text" id="questionInput" placeholder="Stil et spørsmål..." />
-      <button onclick="askBot()">Send</button>
+      <button id="sendButton" onclick="askBot()">Send</button>
       <div class="powered">Powered by SiteAssistant</div>
     </div>
     <p id="status" style="margin-top: 20px;"></p>
@@ -40,26 +115,47 @@
     const backend = 'https://chatbot-embedding-backend.onrender.com';
     let currentDomain = '';
 
+    // Normalize domain: strip protocol and optional www.
+    function normalizeDomain(input) {
+      return input.trim()
+        .replace(/^https?:\/\//i, '')
+        .replace(/^www\./i, '')
+        .replace(/\/$/, '');
+    }
+
     function showChat(domain) {
       document.getElementById('title').textContent = `Chat om ${domain}`;
       document.getElementById('createSection').style.display = 'none';
       document.getElementById('chatSection').style.display = 'block';
       currentDomain = domain;
+      document.getElementById('questionInput').focus();
     }
 
-    // On load, check path
+    // Handle initial route
     window.addEventListener('DOMContentLoaded', () => {
       const path = window.location.pathname;
       if (path.length > 1) {
-        const slug = path.slice(1); // e.g. example-com
+        const slug = path.slice(1);
         const domain = slug.replace(/-/g, '.');
-        showChat(domain);
+        showChat(normalizeDomain(domain));
       }
+      // Enter key handling
+      document.getElementById('domainInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          createBot();
+        }
+      });
+      document.getElementById('questionInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          askBot();
+        }
+      });
     });
 
     async function createBot() {
       const input = document.getElementById('domainInput');
-      const domain = input.value.trim();
+      const raw = input.value;
+      const domain = normalizeDomain(raw);
       const status = document.getElementById('status');
       if (!domain) return;
       status.textContent = 'Oppretter...';
@@ -70,22 +166,29 @@
         });
         const data = await res.json();
         if (res.ok) {
-          status.innerHTML = `Success! Åpne chat: <a href="https://${window.location.host}/${domain.replace(/\./g, '-')}" target="_blank">https://${window.location.host}/${domain.replace(/\./g, '-')}</a>`;
+          const link = `https://${window.location.host}/${domain.replace(/\./g, '-')}`;
+          status.innerHTML = `Success! Åpne chat: <a href="${link}" target="_blank">${link}</a>`;
         } else {
           status.textContent = data.answer || 'Feil ved oppretting';
         }
-      } catch(e) { status.textContent = 'Serverfeil'; }
+      } catch(e) {
+        status.textContent = 'Serverfeil';
+      }
     }
 
     async function askBot() {
       const input = document.getElementById('questionInput');
       const chat = document.getElementById('chatWindow');
       const status = document.getElementById('status');
-      const question = input.value.trim();
+      const raw = input.value;
+      const question = raw.trim();
       if (!question) return;
       // Append user message
-      const userMsg = document.createElement('div'); userMsg.className = 'message user'; userMsg.textContent = question;
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.textContent = question;
       chat.appendChild(userMsg);
+      chat.scrollTop = chat.scrollHeight;
       status.textContent = 'Skriver...';
       try {
         const res = await fetch(`${backend}/client/ask`, {
@@ -93,11 +196,15 @@
           body: JSON.stringify({ domain: currentDomain, question })
         });
         const data = await res.json();
-        const botMsg = document.createElement('div'); botMsg.className = 'message bot'; botMsg.textContent = data.answer;
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bot';
+        botMsg.textContent = data.answer;
         chat.appendChild(botMsg);
         chat.scrollTop = chat.scrollHeight;
         status.textContent = '';
-      } catch(e) { status.textContent = 'Serverfeil i chat'; }
+      } catch(e) {
+        status.textContent = 'Serverfeil i chat';
+      }
       input.value = '';
     }
   </script>
