@@ -203,6 +203,26 @@
       try {
         const res = await fetch(`${backend}/client/ask`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:currentDomain,question}) });
         const data = await res.json(); const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer; chat.appendChild(botMsg);
+        // Etter at du har gjort:
+//   chat.appendChild(botMsg);
+// Legg til dette:
+
+if (data.references && data.references.length > 0) {
+  const refContainer = document.createElement('div');
+  refContainer.style.margin = '8px 0';
+  data.references.forEach(url => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = url;
+    a.target = '_blank';
+    a.style.display = 'block';
+    a.style.fontSize = '0.9em';
+    a.style.color = '#0052cc';
+    a.style.textDecoration = 'underline';
+    refContainer.appendChild(a);
+  });
+  chat.appendChild(refContainer);
+}
         chat.scrollTop=chat.scrollHeight; status.textContent='';
       } catch(e) { status.textContent='Server error in chat'; }
       input.value='';
@@ -213,6 +233,26 @@
       const question = input.value.trim(); if (!question) return;
       const chat = document.getElementById('chatWindowPreview'); const status = document.getElementById('status');
       const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question; chat.appendChild(userMsg);
+      // Etter at du har gjort:
+//   chat.appendChild(botMsg);
+// Legg til dette:
+
+if (data.references && data.references.length > 0) {
+  const refContainer = document.createElement('div');
+  refContainer.style.margin = '8px 0';
+  data.references.forEach(url => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = url;
+    a.target = '_blank';
+    a.style.display = 'block';
+    a.style.fontSize = '0.9em';
+    a.style.color = '#0052cc';
+    a.style.textDecoration = 'underline';
+    refContainer.appendChild(a);
+  });
+  chat.appendChild(refContainer);
+}
       chat.scrollTop=chat.scrollHeight; status.textContent='Writing...';
       try {
         const res = await fetch(`${backend}/client/ask`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:currentDomain,question}) });
