@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SiteAssistant Chat</title>
-  <!-- Favicon omitted -->
   <style>
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .container {
@@ -18,7 +17,6 @@
     }
     input[type="text"] { padding: 15px; font-size: 1.2em; width: 100%; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
     button { padding: 15px 30px; font-size: 1.2em; background-color: #0052cc; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
-    button:disabled { background-color: #7a9bd1; cursor: not-allowed; }
     button:hover:not(:disabled) { background-color: #003d99; }
     .links { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
     .links a { color: #0052cc; text-decoration: underline; cursor: pointer; }
@@ -32,16 +30,17 @@
     .message.bot { background: #e0e0e0; align-self: flex-start; text-align: left; }
     .powered { font-size: 0.7em; color: #888; margin: 4px; text-align: right; }
     #trainedPages { display: none; margin-top: 10px; text-align: left; }
-    #trainedPages a { display: block; color: #0052cc; text-decoration: underline; }
+    #trainedPages h3 { margin-bottom: 8px; }
+    #trainedPages a { display: block; color: #0052cc; text-decoration: underline; margin: 4px 0; }
   </style>
 </head>
 <body>
-  <div class="container" id="mainContainer">
+  <div class="container">
     <h1 id="title">Create Your Website Chatbot</h1>
     <div id="createSection">
       <p>Enter your domain to create your chatbot:</p>
       <input type="text" id="domainInput" placeholder="yourdomain.com" />
-      <button id="submitButton" onclick="createBot()">Create my chatbot</button>
+      <button onclick="createBot()">Create my chatbot</button>
     </div>
     <div id="status" style="margin-top:20px;"></div>
     <div class="links" id="actionLinks" style="display:none;">
@@ -49,7 +48,7 @@
       <a href="#" onclick="showCodeSnippet();return false;">See Code</a>
       <a href="#" onclick="showTrainedPages();return false;">See Trained Pages</a>
     </div>
-    <pre id="codeSnippet" style="text-align:left; background:#f0f0f0; padding:15px; border-radius:8px; overflow-x:auto; margin-top:20px; display:none;"></pre>
+    <pre id="codeSnippet" style="display:none; text-align:left; background:#f0f0f0; padding:15px; border-radius:8px; overflow-x:auto; margin-top:20px;"></pre>
     <div class="chat-container" id="chatContainer">
       <div class="chat-window" id="chatWindow"></div>
       <div class="input-area">
@@ -63,22 +62,31 @@
   <script>
     const backend = 'https://chatbot-embedding-backend.onrender.com';
     let currentDomain = '';
-    function normalizeDomain(input) { return input.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, ''); }
+    function normalizeDomain(input) {
+      return input.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
+    }
     function showStandaloneChat() {
       document.getElementById('createSection').style.display = 'none';
       document.getElementById('codeSnippet').style.display = 'none';
+      document.getElementById('trainedPages').style.display = 'none';
       document.getElementById('actionLinks').style.display = 'flex';
       document.getElementById('chatContainer').style.display = 'flex';
       document.getElementById('title').textContent = `Chat about ${currentDomain}`;
     }
-    document.getElementById('domainInput').addEventListener('keydown', e => { if (e.key==='Enter') createBot(); });
+    document.getElementById('domainInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') createBot();
+    });
     async function createBot() {
-      const raw = document.getElementById('domainInput').value;
-      const domain = normalizeDomain(raw);
+      const domain = normalizeDomain(document.getElementById('domainInput').value);
       currentDomain = domain;
-      const status = document.getElementById('status'); status.textContent = 'Creating...';
+      const status = document.getElementById('status');
+      status.textContent = 'Creating...';
       try {
-        const res = await fetch(`${backend}/client/create-chatbot`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain}) });
+        const res = await fetch(`${backend}/client/create-chatbot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain })
+        });
         const data = await res.json();
         if (res.ok) {
           status.innerHTML = '<strong>Success!</strong>';
@@ -86,32 +94,53 @@
         } else {
           status.textContent = data.answer || 'Error';
         }
-      } catch(e) { status.textContent='Server error'; }
+      } catch (e) {
+        status.textContent = 'Server error';
+      }
     }
     function showCodeSnippet() {
+      document.getElementById('trainedPages').style.display = 'none';
+      document.getElementById('codeSnippet').style.display = 'block';
       const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};var s=document.createElement('script');s.src=\`https://\${window.location.host}/widget.js\`;s.async=true;document.head.appendChild(s);})();\n<\/script>`;
-      const pre = document.getElementById('codeSnippet'); pre.textContent=snippet; pre.style.display='block';
+      document.getElementById('codeSnippet').textContent = snippet;
     }
     async function askBot() {
-      const inp = document.getElementById('questionInput'); const q=inp.value.trim(); if(!q) return;
+      const inp = document.getElementById('questionInput');
+      const q = inp.value.trim();
+      if (!q) return;
       const chat = document.getElementById('chatWindow');
-      const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=q; chat.appendChild(userMsg);
-      chat.scrollTop=chat.scrollHeight;
-      inp.value='';
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.textContent = q;
+      chat.appendChild(userMsg);
+      chat.scrollTop = chat.scrollHeight;
+      inp.value = '';
       try {
-        const res = await fetch(`${backend}/client/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:currentDomain,question:q})});
+        const res = await fetch(`${backend}/client/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain: currentDomain, question: q })
+        });
         const data = await res.json();
-        const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer; chat.appendChild(botMsg);
-        chat.scrollTop=chat.scrollHeight;
-      } catch(e) { console.error(e); }
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bot';
+        botMsg.textContent = data.answer;
+        chat.appendChild(botMsg);
+        chat.scrollTop = chat.scrollHeight;
+      } catch (e) {
+        console.error(e);
+      }
     }
     function showTrainedPages() {
+      document.getElementById('codeSnippet').style.display = 'none';
+      document.getElementById('chatContainer').style.display = 'flex';
       fetch(`${backend}/client/domains/${currentDomain}/info`)
         .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
         .then(info => {
           const div = document.getElementById('trainedPages');
           if (info.fetched_urls && info.fetched_urls.length > 0) {
-            div.innerHTML = info.fetched_urls.map(u => `<a href="${u}" target="_blank">${u}</a>`).join('<br/>');
+            div.innerHTML = '<h3>Webpages trained by chatbot:</h3>' +
+              info.fetched_urls.map(u => `<a href="${u}" target="_blank">${u}</a>`).join('');
           } else {
             div.innerHTML = '<em>No pages trained yet.</em>';
           }
