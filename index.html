@@ -97,16 +97,26 @@
     async function askBot() {
       const inp = document.getElementById('questionInput'); const q = inp.value.trim(); if (!q) return;
       const chat = document.getElementById('chatWindow');
+      // User message
       const userMsg = document.createElement('div'); userMsg.className = 'message user'; userMsg.textContent = q; chat.appendChild(userMsg); chat.scrollTop = chat.scrollHeight; inp.value = '';
       try {
         const res = await fetch(`${backend}/client/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: currentDomain, question: q }) });
         const data = await res.json();
+        // Bot message wrapper
         const msgWrapper = document.createElement('div'); msgWrapper.style.display = 'flex'; msgWrapper.style.alignItems = 'center';
         const botMsg = document.createElement('div'); botMsg.className = 'message bot'; botMsg.textContent = data.answer;
         msgWrapper.appendChild(botMsg);
-        // clickable source icon linking to main domain
-        const srcLink = document.createElement('a'); srcLink.className = 'source-link'; srcLink.href = `https://${currentDomain}`; srcLink.target = '_blank'; srcLink.textContent = '🔗';
-        msgWrapper.appendChild(srcLink);
+        // Append source links if provided
+        if (data.sources && data.sources.length) {
+          data.sources.forEach(src => {
+            const srcLink = document.createElement('a');
+            srcLink.className = 'source-link';
+            srcLink.href = src;
+            srcLink.target = '_blank';
+            srcLink.textContent = '🔗';
+            msgWrapper.appendChild(srcLink);
+          });
+        }
         chat.appendChild(msgWrapper); chat.scrollTop = chat.scrollHeight;
       } catch (e) { console.error(e); }
     }
