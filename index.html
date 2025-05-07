@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SiteAssistant Chat</n  ><link rel="icon" href="https://chatbase.co/favicon.ico" />
+  <title>SiteAssistant Chat</title>
+  <!-- Favicon omitted -->
   <style>
     body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .container {
@@ -88,7 +89,7 @@
       } catch(e) { status.textContent='Server error'; }
     }
     function showCodeSnippet() {
-      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};var s=document.createElement('script');s.src='https://${window.location.host}/widget.js';s.async=true;document.head.appendChild(s);})();\n<\/script>`;
+      const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};var s=document.createElement('script');s.src=\`https://\${window.location.host}/widget.js\`;s.async=true;document.head.appendChild(s);})();\n<\/script>`;
       const pre = document.getElementById('codeSnippet'); pre.textContent=snippet; pre.style.display='block';
     }
     async function askBot() {
@@ -106,10 +107,7 @@
     }
     function showTrainedPages() {
       fetch(`${backend}/client/domains/${currentDomain}/info`)
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
+        .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
         .then(info => {
           const div = document.getElementById('trainedPages');
           if (info.fetched_urls && info.fetched_urls.length > 0) {
