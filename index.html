@@ -20,16 +20,28 @@
     button { padding: 15px 30px; font-size: 1.2em; background-color: #0052cc; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
     button:disabled { background-color: #7a9bd1; cursor: not-allowed; }
     button:hover:not(:disabled) { background-color: #003d99; }
-    .chat-container-standalone { display: none; flex-direction: column; height: 80vh; margin-top: 20px; }
-    .chat-window-standalone { flex: 1; padding: 15px; border: 1px solid #ccc; border-radius: 8px; overflow-y: auto; background: #f9f9f9; margin-bottom: 15px; }
-    .input-area-standalone { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #fff; border-radius: 8px; }
-    .input-area-standalone input { flex: 1; border: none; padding: 10px; font-size: 1em; border-radius: 4px; }
-    .input-area-standalone button { margin-left: 10px; padding: 10px; }
+    .links {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .links a {
+      color: #0052cc;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .chat-container { display: none; flex-direction: column; height: 70vh; margin-top: 20px; }
+    .chat-window { flex: 1; padding: 15px; border: 1px solid #ccc; border-radius: 8px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; }
+    .input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; background: #fff; border-radius: 8px; }
+    .input-area input { flex: 1; border: 1px solid #ccc; padding: 10px; font-size: 1em; border-radius: 4px; }
+    .input-area button { margin-left: 10px; padding: 10px; }
     .message { margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 80%; word-wrap: break-word; }
-    .message.user { background: #d0ebff; align-self: flex-end; }
-    .message.bot { background: #e0e0e0; align-self: flex-start; }
+    .message.user { background: #d0ebff; align-self: flex-end; text-align: right; }
+    .message.bot { background: #e0e0e0; align-self: flex-start; text-align: left; }
     .powered { font-size: 0.7em; color: #888; margin: 4px; text-align: right; }
-    #codeSnippet { display: none; text-align: left; background: #f0f0f0; padding: 15px; border-radius: 8px; overflow-x: auto; margin-top: 20px; font-family: monospace; }
+    #trainedPages { display: none; margin-top: 10px; text-align: left; }
+    #trainedPages a { display: block; color: #0052cc; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -38,59 +50,50 @@
     <div id="createSection">
       <p>Enter your domain to create your chatbot:</p>
       <input type="text" id="domainInput" placeholder="yourdomain.com" />
-      <br/>
       <button id="submitButton" onclick="createBot()">Create my chatbot</button>
     </div>
     <div id="status" style="margin-top:20px;"></div>
-    <pre id="codeSnippet"></pre>
-    <div class="chat-container-standalone" id="standaloneChat">
-      <div id="chatWindowStandalone" class="chat-window-standalone"></div>
-      <div class="input-area-standalone">
-        <input type="text" id="questionInputStandalone" placeholder="Ask a question..." />
-        <button onclick="askBotStandalone()">Send</button>
+    <div class="links" id="actionLinks" style="display:none;">
+      <a href="#" onclick="showStandaloneChat();return false;">Open Chat</a>
+      <a href="#" onclick="showCodeSnippet();return false;">See Code</a>
+      <a href="#" onclick="showTrainedPages();return false;">See Trained Pages</a>
+    </div>
+    <pre id="codeSnippet" style="text-align:left; background:#f0f0f0; padding:15px; border-radius:8px; overflow-x:auto; margin-top:20px; display:none;"></pre>
+    <div class="chat-container" id="chatContainer">
+      <div class="chat-window" id="chatWindow"></div>
+      <div class="input-area">
+        <input type="text" id="questionInput" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') askBot();" />
+        <button onclick="askBot()">Send</button>
       </div>
       <div class="powered">Powered by SiteAssistant</div>
-      <div style="margin-top:10px; font-size:0.9em;">
-        <a href="#" onclick="showTrainedPages(); return false;">See trained pages</a>
-      </div>
-      <div id="trainedPages" style="display:none; margin-top:10px; text-align:left;"></div>
+      <div id="trainedPages"></div>
     </div>
   </div>
   <script>
     const backend = 'https://chatbot-embedding-backend.onrender.com';
     let currentDomain = '';
     function normalizeDomain(input) { return input.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, ''); }
-    function showStandaloneChat(domain) {
-      currentDomain = domain;
+    function showStandaloneChat() {
       document.getElementById('createSection').style.display = 'none';
       document.getElementById('codeSnippet').style.display = 'none';
-      document.getElementById('standaloneChat').style.display = 'flex';
-      document.getElementById('title').textContent = `Chat about ${domain}`;
-      document.getElementById('questionInputStandalone').focus();
+      document.getElementById('actionLinks').style.display = 'flex';
+      document.getElementById('chatContainer').style.display = 'flex';
+      document.getElementById('title').textContent = `Chat about ${currentDomain}`;
     }
-    window.addEventListener('DOMContentLoaded', () => {
-      const path = window.location.pathname;
-      if (path.length > 1) {
-        const domain = normalizeDomain(path.slice(1).replace(/-/g, '.'));
-        showStandaloneChat(domain);
-      }
-      document.getElementById('domainInput').addEventListener('keydown', e => { if (e.key==='Enter') createBot(); });
-      document.getElementById('questionInputStandalone').addEventListener('keydown', e => { if (e.key==='Enter') askBotStandalone(); });
-    });
+    document.getElementById('domainInput').addEventListener('keydown', e => { if (e.key==='Enter') createBot(); });
     async function createBot() {
       const raw = document.getElementById('domainInput').value;
       const domain = normalizeDomain(raw);
-      const status = document.getElementById('status');
-      if (!domain) return;
-      status.textContent = 'Creating...';
+      currentDomain = domain;
+      const status = document.getElementById('status'); status.textContent = 'Creating...';
       try {
         const res = await fetch(`${backend}/client/create-chatbot`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain}) });
         const data = await res.json();
         if (res.ok) {
-          status.innerHTML = `Success! <a href="#" onclick="showStandaloneChat('${domain}');return false;">Open Chat</a>` +
-                             ` | <a href="#" onclick="showCodeSnippet();return false;">See code</a>`;
+          status.innerHTML = '<strong>Success!</strong>';
+          document.getElementById('actionLinks').style.display = 'flex';
         } else {
-          status.textContent = data.answer || 'Error creating chatbot';
+          status.textContent = data.answer || 'Error';
         }
       } catch(e) { status.textContent='Server error'; }
     }
@@ -98,37 +101,27 @@
       const snippet = `<!-- SiteAssistant embed code -->\n<script>\n(function(){\n  window.SiteAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};var s=document.createElement('script');s.src='https://${window.location.host}/widget.js';s.async=true;document.head.appendChild(s);})();\n<\/script>`;
       const pre = document.getElementById('codeSnippet'); pre.textContent=snippet; pre.style.display='block';
     }
-    async function askBotStandalone() {
-      const input = document.getElementById('questionInputStandalone'); const question = input.value.trim(); if(!question)return;
-      const chat = document.getElementById('chatWindowStandalone'); const status=document.getElementById('status');
-      const userMsg=document.createElement('div'); userMsg.className='message user'; userMsg.textContent=question; chat.appendChild(userMsg);
-      chat.scrollTop=chat.scrollHeight; status.textContent='Writing...';
+    async function askBot() {
+      const inp = document.getElementById('questionInput'); const q=inp.value.trim(); if(!q) return;
+      const chat = document.getElementById('chatWindow');
+      const userMsg = document.createElement('div'); userMsg.className='message user'; userMsg.textContent=q; chat.appendChild(userMsg);
+      chat.scrollTop=chat.scrollHeight;
+      document.getElementById('status').textContent=''; inp.value='';
       try {
-        const res=await fetch(`${backend}/client/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:currentDomain,question})});
-        const data=await res.json(); const botMsg=document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer; chat.appendChild(botMsg);
-        chat.scrollTop=chat.scrollHeight; status.textContent='';
-      } catch(e){ status.textContent='Server error'; }
-      input.value='';
+        const res = await fetch(`${backend}/client/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:currentDomain,question:q})});
+        const data = await res.json();
+        const botMsg = document.createElement('div'); botMsg.className='message bot'; botMsg.textContent=data.answer; chat.appendChild(botMsg);
+        chat.scrollTop=chat.scrollHeight;
+      } catch(e) { console.error(e); }
     }
     function showTrainedPages() {
-  fetch(`/client/domains/${currentDomain}/info`)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then(info => {
-      const div = document.getElementById('trainedPages');
-      div.innerHTML =
-        'Trained pages:<br/>' +
-        info.fetched_urls
-          .map(u => `<a href="${u}" target="_blank">${u}</a>`)
-          .join('<br/>');
-      div.style.display = 'block';
-    })
-    .catch(err => {
-      console.error('Could not load trained pages:', err);
-    });
-}
+      fetch(`${backend}/client/domains/${currentDomain}/info`)
+        .then(res=>res.json())
+        .then(info=>{
+          const div = document.getElementById('trainedPages');
+          div.innerHTML = info.fetched_urls.map(u=>`<a href="${u}" target="_blank">${u}</a>`).join('');
+        });
+    }
   </script>
 </body>
 </html>
