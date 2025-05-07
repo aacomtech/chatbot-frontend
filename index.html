@@ -84,7 +84,7 @@
       if (!domain) return;
       status.textContent = 'Creating...';
       try {
-        const res = await fetch(`${backend}/create-chatbot`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain}) });
+        const res = await fetch(`${backend}/client/create-chatbot`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain}) });
         const data = await res.json();
         if (res.ok) {
           status.innerHTML = `Success! <a href="#" onclick="showStandaloneChat('${domain}');return false;">Open Chat</a>` +
