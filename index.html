@@ -111,12 +111,24 @@
       input.value='';
     }
     function showTrainedPages() {
-      fetch(`/domains/${currentDomain}/info`,{headers:{Authorization: 'Basic ' + btoa('admin:6434e108a8efccf2e8629862b70af80f')}})
-        .then(res=>res.json()).then(info=>{
-          const div=document.getElementById('trainedPages'); div.innerHTML='Trained pages:<br/>' + info.fetched_urls.map(u=>`<a href="${u}" target="_blank">${u}</a>`).join('<br/>');
-          div.style.display='block';
-        });
-    }
+  fetch(`/client/domains/${currentDomain}/info`)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(info => {
+      const div = document.getElementById('trainedPages');
+      div.innerHTML =
+        'Trained pages:<br/>' +
+        info.fetched_urls
+          .map(u => `<a href="${u}" target="_blank">${u}</a>`)
+          .join('<br/>');
+      div.style.display = 'block';
+    })
+    .catch(err => {
+      console.error('Could not load trained pages:', err);
+    });
+}
   </script>
 </body>
 </html>
