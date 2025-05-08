@@ -178,10 +178,10 @@
 (function(){
   window.WebpageAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};
   var s=document.createElement('script');
-  s.src=` + "`https://${window.location.host}/widget.js`" + `;
-  s.async=true;document.head.appendChild(s);
+  s.src = 'https://' + window.location.host + '/widget.js';
+  s.async = true; document.head.appendChild(s);
 })();
-</script>`;
+<\/script>`;
       document.getElementById('codeSnippet').textContent = snippet;
     }
     
