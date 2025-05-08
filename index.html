@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,6 +18,7 @@
     input[type="text"] { padding: 15px; font-size: 1.2em; width: 100%; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
     button { padding: 15px 30px; font-size: 1.2em; background-color: #0052cc; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
     button:hover:not(:disabled) { background-color: #003d99; }
+    button:disabled { background-color: #7a9bd1; cursor: not-allowed; }
     .links { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
     .links a { color: #0052cc; text-decoration: underline; cursor: pointer; }
     .chat-container { display: none; flex-direction: column; height: 70vh; margin-top: 20px; }
@@ -41,7 +42,7 @@
     <div id="createSection">
       <p>Enter your domain to create your chatbot:</p>
       <input type="text" id="domainInput" placeholder="yourdomain.com" />
-      <button onclick="createBot()">Create my chatbot</button>
+      <button id="createBtn">Create my chatbot</button>
     </div>
     <div id="status" style="margin-top:20px;"></div>
     <div class="links" id="actionLinks" style="display:none;">
@@ -53,8 +54,8 @@
     <div class="chat-container" id="chatContainer">
       <div class="chat-window" id="chatWindow"></div>
       <div class="input-area">
-        <input type="text" id="questionInput" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') askBot();" />
-        <button onclick="askBot()">Send</button>
+        <input type="text" id="questionInput" placeholder="Ask a question..." />
+        <button id="sendBtn" disabled>Send</button>
       </div>
       <div class="powered">Powered by WebpageAssistant.com</div>
       <div id="trainedPages"></div>
@@ -63,9 +64,14 @@
   <script>
     const backend = 'https://chatbot-embedding-backend.onrender.com';
     let currentDomain = '';
+    const statusEl = document.getElementById('status');
+    const createBtn = document.getElementById('createBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    
     function normalizeDomain(input) {
       return input.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
     }
+    
     function showStandaloneChat() {
       document.getElementById('createSection').style.display = 'none';
       document.getElementById('codeSnippet').style.display = 'none';
@@ -74,39 +80,77 @@
       document.getElementById('chatContainer').style.display = 'flex';
       document.getElementById('title').textContent = `Chat about ${currentDomain}`;
     }
-    document.getElementById('domainInput').addEventListener('keydown', e => { if (e.key === 'Enter') createBot(); });
+    
+    document.getElementById('domainInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') createBtn.click();
+    });
+    createBtn.addEventListener('click', createBot);
+    sendBtn.addEventListener('click', askBot);
+    document.getElementById('questionInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !sendBtn.disabled) askBot();
+    });
+    
     async function createBot() {
       const domain = normalizeDomain(document.getElementById('domainInput').value);
+      if (!domain) return;
       currentDomain = domain;
-      const status = document.getElementById('status'); status.textContent = 'Creating...';
+      statusEl.textContent = 'Creating...';
+      createBtn.disabled = true;
       try {
-        const res = await fetch(`${backend}/client/create-chatbot`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain }) });
+        const res = await fetch(`${backend}/client/create-chatbot`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain })
+        });
         const data = await res.json();
         if (res.ok) {
-          status.innerHTML = '<strong>Success!</strong>';
+          statusEl.innerHTML = '<strong>Success!</strong>';
           document.getElementById('actionLinks').style.display = 'flex';
-        } else status.textContent = data.answer || 'Error';
-      } catch (e) { status.textContent = 'Server error'; }
+          sendBtn.disabled = false;
+        } else {
+          statusEl.textContent = data.answer || 'Error';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Server error';
+      } finally {
+        createBtn.disabled = false;
+      }
     }
-    function showCodeSnippet() {
-      document.getElementById('trainedPages').style.display = 'none';
-      document.getElementById('codeSnippet').style.display = 'block';
-      const snippet = `<!-- WebpageAssistant embed code -->\n<script>\n(function(){window.WebpageAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};var s=document.createElement('script');s.src=\`https://\${window.location.host}/widget.js\`;s.async=true;document.head.appendChild(s);})();\n<\/script>`;
-      document.getElementById('codeSnippet').textContent = snippet;
-    }
+    
     async function askBot() {
-      const inp = document.getElementById('questionInput'); const q = inp.value.trim(); if (!q) return;
+      const inp = document.getElementById('questionInput');
+      const q = inp.value.trim();
+      if (!q) return;
       const chat = document.getElementById('chatWindow');
       // User message
-      const userMsg = document.createElement('div'); userMsg.className = 'message user'; userMsg.textContent = q; chat.appendChild(userMsg); chat.scrollTop = chat.scrollHeight; inp.value = '';
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.textContent = q;
+      chat.appendChild(userMsg);
+      chat.scrollTop = chat.scrollHeight;
+      inp.value = '';
+      sendBtn.disabled = true;
+      // Loading indicator
+      const loadingMsg = document.createElement('div');
+      loadingMsg.className = 'message bot';
+      loadingMsg.textContent = 'Skriver...';
+      chat.appendChild(loadingMsg);
+      chat.scrollTop = chat.scrollHeight;
       try {
-        const res = await fetch(`${backend}/client/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: currentDomain, question: q }) });
+        const res = await fetch(`${backend}/client/ask`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain: currentDomain, question: q })
+        });
         const data = await res.json();
-        // Bot message wrapper
-        const msgWrapper = document.createElement('div'); msgWrapper.style.display = 'flex'; msgWrapper.style.alignItems = 'center';
-        const botMsg = document.createElement('div'); botMsg.className = 'message bot'; botMsg.textContent = data.answer;
+        // Remove loading message
+        loadingMsg.remove();
+        // Bot response
+        const msgWrapper = document.createElement('div');
+        msgWrapper.style.display = 'flex';
+        msgWrapper.style.alignItems = 'center';
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bot';
+        botMsg.textContent = data.answer;  // No 'A:' prefix
         msgWrapper.appendChild(botMsg);
-        // Append source links if provided
         if (data.sources && data.sources.length) {
           data.sources.forEach(src => {
             const srcLink = document.createElement('a');
@@ -117,10 +161,31 @@
             msgWrapper.appendChild(srcLink);
           });
         }
-        chat.appendChild(msgWrapper); chat.scrollTop = chat.scrollHeight;
-      } catch (e) { console.error(e); }
+        chat.appendChild(msgWrapper);
+        chat.scrollTop = chat.scrollHeight;
+      } catch (e) {
+        loadingMsg.textContent = 'Feil ved henting av svar.';
+      } finally {
+        sendBtn.disabled = false;
+      }
     }
-    function showTrainedPages() {
+    
+    function showCodeSnippet() {
+      document.getElementById('trainedPages').style.display = 'none';
+      document.getElementById('codeSnippet').style.display = 'block';
+      const snippet = `<!-- WebpageAssistant embed code -->
+<script>
+(function(){
+  window.WebpageAssistantConfig={domain:'${currentDomain}',backend:'${backend}'};
+  var s=document.createElement('script');
+  s.src=` + "`https://${window.location.host}/widget.js`" + `;
+  s.async=true;document.head.appendChild(s);
+})();
+</script>`;
+      document.getElementById('codeSnippet').textContent = snippet;
+    }
+    
+    async function showTrainedPages() {
       document.getElementById('codeSnippet').style.display = 'none';
       document.getElementById('chatContainer').style.display = 'flex';
       fetch(`${backend}/client/domains/${currentDomain}/info`)
@@ -128,8 +193,11 @@
         .then(info => {
           const div = document.getElementById('trainedPages');
           if (info.fetched_urls && info.fetched_urls.length) {
-            div.innerHTML = '<h3>Webpages trained by chatbot:</h3>' + info.fetched_urls.map(u => `<a href="${u}" target="_blank">${u}</a>`).join('');
-          } else div.innerHTML = '<em>No pages trained yet.</em>';
+            div.innerHTML = '<h3>Webpages trained by chatbot:</h3>' +
+              info.fetched_urls.map(u => `<a href="${u}" target="_blank">${u}</a>`).join('');
+          } else {
+            div.innerHTML = '<em>No pages trained yet.</em>';
+          }
           div.style.display = 'block';
         }).catch(err => console.error(err));
     }
